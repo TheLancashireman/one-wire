@@ -125,28 +125,6 @@ void w1_write_byte(u8_t pin, u8_t b)
 	}
 }
 
-/* w1_read() - read a bit from the 1-wire bus
-*/
-static inline u8_t w1_read(u8_t pin)
-{
-    /* Force output pin to low for 1us
-    */
-    pin_mode(pin, OUTPUT);
-    w1_delay(1);
-    pin_mode(pin, INPUT);
-
-	/* After max. 15 us, sample bus
-	*/
-    w1_delay(5);
-	u8_t x = pin_get(pin);
-
-	/* Delay rest of read slot + recovery time
-	*/
-	w1_delay(55);
-
-	return x != 0;
-}
-
 /* w1_readbyte() - read a byte from the onw-wire bus
 */
 u8_t w1_readbyte(u8_t pin)
