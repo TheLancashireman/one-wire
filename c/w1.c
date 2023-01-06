@@ -21,16 +21,17 @@
 
 /* w1_reset() - resets the 1-wire bus
 */
-i8_t w1_reset(u8_t pin)
+s8_t w1_reset(u8_t pin)
 {
 	/* Set pin to low/input
 	*/
 	pin_set(pin, LOW);
 	pin_mode(pin, INPUT);
 
-	/* Ensure pin is high. Wait longer than max --> error
+	/* Ensure pin is high, i.e. no slaves occupying the bus.
+	 * Wait longer than max --> error
 	*/
-	for ( i8_t i = 0; i < W1_TRSTH; i++ )
+	for ( s8_t i = 0; i < W1_TRSTH; i++ )
 	{
 		w1_delay(1);
 		if ( pin_get(pin) )
@@ -38,7 +39,7 @@ i8_t w1_reset(u8_t pin)
 	}
 
 	if ( !pin_get(pin) )
-		return W1_E_NOTIDLE;
+		return W1_RST_NOTIDLE;
 	
 	/* Set pin to output - drives low - for 480 us
 	*/
@@ -49,12 +50,12 @@ i8_t w1_reset(u8_t pin)
 	/* Wait 80 us then sample the input. Input should be low from 60..120 if device is present.
 	*/
 	w1_delay(80);
-	if ( get_pin(pin) )
-		return W1_E_NOTPRESENT;
+	if ( pin_get(pin) )
+		return W1_RST_NOTPRESENT;
 
 	/* Wait until pin goes high again (longer than max: error)
 	*/
-	for ( i8_t i = 0; i < 240; i++ )
+	for ( s8_t i = 0; i < 240; i++ )
 	{
 		w1_delay(1);
 		if ( pin_get(pin) )
@@ -62,7 +63,7 @@ i8_t w1_reset(u8_t pin)
 	}
 
 	if ( !pin_get(pin) )
-		return W1_E_NOTGONE;
+		return W1_RST_NOTGONE;
 
 	return W1_OK;
 }
@@ -75,7 +76,7 @@ i8_t w1_reset(u8_t pin)
  * ==> Master must hold low for at least 60 us ... max 120us
  * We choose 65us
 */
-void w1_write0(u8_t pin)
+static inline void w1_write0(u8_t pin)
 {
 	/* Force output pin to low for 60us < t < 120us
 	*/
@@ -96,7 +97,7 @@ void w1_write0(u8_t pin)
  * ==> Master releases after 1us, must allow 60 us
  * We choose 65 us
 */
-void w1_write1(u8_t pin)
+static inline void w1_write1(u8_t pin)
 {
 	/* Force output pin to low for 1us
 	*/
@@ -113,7 +114,7 @@ void w1_write1(u8_t pin)
 */
 void w1_write_byte(u8_t pin, u8_t b)
 {
-	i8_t i;
+	s8_t i;
 	for ( i = 0; i < 8; i++ )
 	{
 		if ( (b & 0x01) == 0 )
@@ -126,7 +127,7 @@ void w1_write_byte(u8_t pin, u8_t b)
 
 /* w1_read() - read a bit from the 1-wire bus
 */
-u8_t w1_read(u8_t pin)
+static inline u8_t w1_read(u8_t pin)
 {
     /* Force output pin to low for 1us
     */
